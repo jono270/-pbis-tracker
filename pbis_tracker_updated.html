@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Points Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "https://pbis-tracker-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const pointsRef7 = ref(db, 'points7');
+        const pointsRef8 = ref(db, 'points8');
+        const pointsRef6 = ref(db, 'points6');
+
+        window.onload = function() {
+            let ctx7 = document.getElementById('pointsChart7').getContext('2d');
+            let ctx8 = document.getElementById('pointsChart8').getContext('2d');
+            let ctx6 = document.getElementById('pointsChart6').getContext('2d');
+
+            function createChart(ctx, labels) {
+                return new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Points',
+                            data: Array(labels.length).fill(0),
+                            backgroundColor: '#00264d',
+                            borderColor: '#001a33',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            let pointsChart7 = createChart(ctx7, ['7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7']);
+            let pointsChart8 = createChart(ctx8, ['8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']);
+            let pointsChart6 = createChart(ctx6, ['6.1', '6.2', '6.3', '6.4', '6.5', '6.6', '6.7']);
+
+            function updateGraph(ref, chart, grade) {
+                let newData = [];
+                for (let i = 1; i <= 7; i++) {
+                    newData.push(parseInt(document.getElementById(`class${grade}${i}`).value) || 0);
+                }
+                set(ref, newData).then(() => {
+                    console.log(`Data saved for grade ${grade}:`, newData);
+                }).catch(error => {
+                    console.error("Error saving data:", error);
+                });
+                chart.data.datasets[0].data = newData;
+                chart.update();
+            }
+
+            function setupListeners(ref, chart, grade) {
+                for (let i = 1; i <= 7; i++) {
+                    document.getElementById(`class${grade}${i}`).addEventListener('input', function() {
+                        updateGraph(ref, chart, grade);
+                    });
+                }
+                onValue(ref, (snapshot) => {
+                    if (snapshot.exists()) {
+                        let data = snapshot.val();
+                        chart.data.datasets[0].data = data;
+                        chart.update();
+                        for (let i = 1; i <= 7; i++) {
+                            document.getElementById(`class${grade}${i}`).value = data[i-1];
+                        }
+                    }
+                });
+            }
+
+            setupListeners(pointsRef7, pointsChart7, 7);
+            setupListeners(pointsRef8, pointsChart8, 8);
+            setupListeners(pointsRef6, pointsChart6, 6);
+
+            function checkLogin() {
+                let password = document.getElementById('password').value;
+                if (password === 'Teacher@basis') {
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('inputSection').style.display = 'block';
+                } else {
+                    alert('Incorrect password!');
+                }
+            }
+
+            window.checkLogin = checkLogin;
+
+            function viewAsStudent() {
+                document.getElementById('loginSection').style.display = 'none';
+            }
+
+            window.viewAsStudent = viewAsStudent;
+        };
+    </script>
+    <style>
+        body { background-color: #b3c6e7;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container { background: white; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px;
+            width: 80%;
+            margin: auto;
+        }
+        input {
+            width: 60px;
+            margin: 5px;
+        }
+        #inputSection {
+            display: none;
+        }
+        canvas {
+            width: 100% !important;
+            max-height: 400px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Class Points Tracker - Tiger Cup</h2>
+        <canvas id="pointsChart7"></canvas>
+        <canvas id="pointsChart8"></canvas>
+        <canvas id="pointsChart6"></canvas>
+        <p><strong>Made by Jonathan Sponsored by Jimmy Zhao</strong></p>
+        
+        <div id="loginSection">
+            <h3>Login</h3>
+            <input type="password" id="password" placeholder="Enter password">
+            <button onclick="checkLogin()">Login as Teacher</button>
+            <button onclick="viewAsStudent()">View as Student</button>
+        </div>
+
+        <div id="inputSection">
+            <h3>Enter Points</h3>
+            <div id="grade7">
+                <h4>Grade 7</h4>
+                <script>for (let i = 1; i <= 7; i++) document.write(`<input type="number" id="class7${i}" value="0">`);</script>
+            </div>
+            <div id="grade8">
+                <h4>Grade 8</h4>
+                <script>for (let i = 1; i <= 7; i++) document.write(`<input type="number" id="class8${i}" value="0">`);</script>
+            </div>
+            <div id="grade6">
+                <h4>Grade 6</h4>
+                <script>for (let i = 1; i <= 7; i++) document.write(`<input type="number" id="class6${i}" value="0">`);</script>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
